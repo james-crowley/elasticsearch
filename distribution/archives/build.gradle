@@ -180,6 +180,18 @@ task buildLinuxAarch64Tar(type: SymbolicLinkPreservingTar) {
   with archiveFiles(modulesFiles(false, 'linux'), 'tar', 'linux', 'aarch64', false, true)
 }
 
+task buildLinuxS390xTar(type: SymbolicLinkPreservingTar) {
+  configure(commonTarConfig)
+  archiveClassifier = 'linux-s390x'
+  with archiveFiles(modulesFiles(false, 'linux'), 'tar', 'linux', 's390x', false, true)
+}
+
+task buildLinuxPpc64leTar(type: SymbolicLinkPreservingTar) {
+  configure(commonTarConfig)
+  archiveClassifier = 'linux-ppc64le'
+  with archiveFiles(modulesFiles(false, 'linux'), 'tar', 'linux', 'ppc64le', false, true)
+}
+
 task buildLinuxTar(type: SymbolicLinkPreservingTar) {
   configure(commonTarConfig)
   archiveClassifier = 'linux-x86_64'
@@ -190,6 +202,18 @@ task buildOssLinuxAarch64Tar(type: SymbolicLinkPreservingTar) {
   configure(commonTarConfig)
   archiveClassifier = 'linux-aarch64'
   with archiveFiles(modulesFiles(true, 'linux'), 'tar', 'linux', 'aarch64', true, true)
+}
+
+task buildOssLinuxS390xTar(type: SymbolicLinkPreservingTar) {
+  configure(commonTarConfig)
+  archiveClassifier = 'linux-s390x'
+  with archiveFiles(modulesFiles(true, 'linux'), 'tar', 'linux', 's390x', true, true)
+}
+
+task buildOssLinuxPpc64leTar(type: SymbolicLinkPreservingTar) {
+  configure(commonTarConfig)
+  archiveClassifier = 'linux-ppc64le'
+  with archiveFiles(modulesFiles(true, 'linux'), 'tar', 'linux', 'ppc64le', true, true)
 }
 
 task buildOssLinuxTar(type: SymbolicLinkPreservingTar) {
