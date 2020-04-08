@@ -618,8 +618,8 @@ subprojects {
   'packages:s390x-rpm', 'packages:s390x-deb',
   'packages:ppc64le-rpm', 'packages:ppc64le-deb',
   'packages:oss-rpm', 'packages:oss-deb',
-  'packages:aarch64-oss-rpm', 'packages:aarch64-oss-deb'
-  'packages:s390x-oss-rpm', 'packages:s390x-oss-deb'
+  'packages:aarch64-oss-rpm', 'packages:aarch64-oss-deb',
+  'packages:s390x-oss-rpm', 'packages:s390x-oss-deb',
   'packages:ppc64le-oss-rpm', 'packages:ppc64le-oss-deb'
 ].forEach { subName ->
   Project subproject = project("${project.path}:${subName}")
