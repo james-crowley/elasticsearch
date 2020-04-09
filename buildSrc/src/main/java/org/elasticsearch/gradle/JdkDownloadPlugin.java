@@ -116,7 +116,8 @@ public class JdkDownloadPlugin implements Plugin<Project> {
                 repoUrl = "https://api.adoptopenjdk.net/v3/binary/version/";
                 artifactPattern = String.format(
                     Locale.ROOT,
-                    "jdk-%s/[module]/[classifier]/jdk/hotspot/normal/adoptopenjdk?project=jdk",
+                    "jdk-%1$s+%2$s/[module]/[classifier]/jdk/hotspot/normal/adoptopenjdk?project=jdk",
+                    jdk.getMajor(),
                     jdk.getBuild()
                 );
             } else if (jdk.getVendor().equals("openjdk")) {
