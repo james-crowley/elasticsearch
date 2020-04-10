@@ -112,21 +112,13 @@ public class JdkDownloadPlugin implements Plugin<Project> {
             String repoUrl;
             String artifactPattern;
             if (jdk.getVendor().equals("adoptopenjdk")) {
-                repoUrl = "https://api.adoptopenjdk.net/v3/binary/version/";
+                repoUrl = "http://0.0.0.0:8000/v3/binary/version/";
                 artifactPattern = String.format(
                     Locale.ROOT,
                     "jdk-%1$s+%2$s/[module]/[classifier]/jdk/hotspot/normal/adoptopenjdk?project=jdk",
                     jdk.getMajor(),
                     jdk.getBuild()
                 );
-//            if (jdk.getVendor().equals("adoptopenjdk")) {
-//                repoUrl = "https://github.com/AdoptOpenJDK/openjdk14-binaries/releases/download/";
-//                artifactPattern = String.format(
-//                    Locale.ROOT,
-//                    "jdk-%1$s+%2$s/OpenJDK%1$sU-jdk_[classifier]_[module]_hotspot_%1$s_%2$s.tar.gz",
-//                    jdk.getMajor(),
-//                    jdk.getBuild()
-//                );
             } else if (jdk.getVendor().equals("openjdk")) {
                 repoUrl = "https://download.oracle.com";
                 if (jdk.getHash() != null) {
