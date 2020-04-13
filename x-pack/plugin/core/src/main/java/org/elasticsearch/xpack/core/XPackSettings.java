@@ -73,10 +73,10 @@ public class XPackSettings {
     /** Setting for enabling or disabling machine learning. Defaults to true. */
     public static final Setting<Boolean> MACHINE_LEARNING_ENABLED = Setting.boolSetting(
         "xpack.ml.enabled",
-        "aarch64".equals(System.getProperty("os.arch")) ? false : true,
+        "x86_64".equals(System.getProperty("os.arch")) ? true : false,
         value -> {
-            if (value && "aarch64".equals(System.getProperty("os.arch"))) {
-                throw new IllegalArgumentException("[xpack.ml.enabled] can not be set to [true] on [aarch64]");
+            if (value && !"x86_64".equals(System.getProperty("os.arch"))) {
+                throw new IllegalArgumentException("[xpack.ml.enabled] can not be set to [true] on non x86_64 architectures");
             }
         },
         Setting.Property.NodeScope);

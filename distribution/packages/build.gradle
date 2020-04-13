@@ -108,22 +108,32 @@ Closure commonPackageConfig(String type, boolean oss, boolean jdk, String archit
     if (type == 'deb') {
       if (architecture == 'x64') {
         arch('amd64')
-      } else {
-        assert architecture == 'aarch64' : architecture
+      } else if (architecture == 'aarch64') {
         arch('arm64')
+      } else if (architecture == 's390x') {
+        arch('s390x')
+      } else if (architecture == 'ppc64le') {
+        arch('ppc64le')
+      } else {
+        throw new GradleException("Expected a supported architecture for deb packaging but found [${architecture}]")
       }
     } else {
       assert type == 'rpm' : type
       if (architecture == 'x64') {
         arch('X86_64')
-      } else {
-        assert architecture == 'aarch64' : architecture
+      } else if (architecture == 'aarch64') {
         arch('aarch64')
+      } else if (architecture == 's390x') {
+        arch('s390x')
+      } else if (architecture == 'ppc64le') {
+        arch('ppc64le')
+      } else {
+        throw new GradleException("Expected a supported architecture for rpm packaging but found [${architecture}]")
       }
     }
     // Follow elasticsearch's file naming convention
     String jdkString = jdk ? "" : "no-jdk-"
-    String prefix = "${architecture == 'aarch64' ? 'aarch64-' : ''}${oss ? 'oss-' : ''}${jdk ? '' : 'no-jdk-'}${type}"
+    String prefix = "${architecture != 'x64' ? architecture + '-' : ''}${oss ? 'oss-' : ''}${jdk ? '' : 'no-jdk-'}${type}"
     destinationDir = file("${prefix}/build/distributions")
 
     // SystemPackagingTask overrides default archive task convention mappings, but doesn't provide a setter so we have to override the convention mapping itself
@@ -351,12 +361,28 @@ Closure commonDebConfig(boolean oss, boolean jdk, String architecture) {
   }
 }
 
+task buildS390xDeb(type: Deb) {
+  configure(commonDebConfig(false, true, 's390x'))
+}
+
+task buildPpc64leDeb(type: Deb) {
+  configure(commonDebConfig(false, true, 'ppc64le'))
+}
+
 task buildAarch64Deb(type: Deb) {
   configure(commonDebConfig(false, true, 'aarch64'))
 }
 
 task buildDeb(type: Deb) {
   configure(commonDebConfig(false, true, 'x64'))
+}
+
+task buildS390xOssDeb(type: Deb) {
+  configure(commonDebConfig(true, true, 's390x'))
+}
+
+task buildPpc64leOssDeb(type: Deb) {
+  configure(commonDebConfig(true, true, 'ppc64le'))
 }
 
 task buildAarch64OssDeb(type: Deb) {
@@ -404,12 +430,28 @@ Closure commonRpmConfig(boolean oss, boolean jdk, String architecture) {
   }
 }
 
+task buildS390xRpm(type: Rpm) {
+  configure(commonRpmConfig(false, true, 'aarch64'))
+}
+
+task buildPpc64leRpm(type: Rpm) {
+  configure(commonRpmConfig(false, true, 'aarch64'))
+}
+
 task buildAarch64Rpm(type: Rpm) {
   configure(commonRpmConfig(false, true, 'aarch64'))
 }
 
 task buildRpm(type: Rpm) {
   configure(commonRpmConfig(false, true, 'x64'))
+}
+
+task buildS390xOssRpm(type: Rpm) {
+  configure(commonRpmConfig(true, true, 's390x'))
+}
+
+task buildPpc64leOssRpm(type: Rpm) {
+  configure(commonRpmConfig(true, true, 'ppc64le'))
 }
 
 task buildAarch64OssRpm(type: Rpm) {

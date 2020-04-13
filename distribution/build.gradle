@@ -610,12 +610,18 @@ subprojects {
 ['archives:windows-zip', 'archives:oss-windows-zip',
   'archives:darwin-tar', 'archives:oss-darwin-tar',
   'archives:linux-aarch64-tar', 'archives:oss-linux-aarch64-tar',
+  'archives:linux-s390x-tar', 'archives:oss-linux-s390x-tar',
+  'archives:linux-ppc64le-tar', 'archives:oss-linux-ppc64le-tar',
   'archives:linux-tar', 'archives:oss-linux-tar',
   'archives:integ-test-zip',
   'packages:rpm', 'packages:deb',
   'packages:aarch64-rpm', 'packages:aarch64-deb',
+  'packages:s390x-rpm', 'packages:s390x-deb',
+  'packages:ppc64le-rpm', 'packages:ppc64le-deb',
   'packages:oss-rpm', 'packages:oss-deb',
-  'packages:aarch64-oss-rpm', 'packages:aarch64-oss-deb'
+  'packages:aarch64-oss-rpm', 'packages:aarch64-oss-deb',
+  'packages:s390x-oss-rpm', 'packages:s390x-oss-deb',
+  'packages:ppc64le-oss-rpm', 'packages:ppc64le-oss-deb'
 ].forEach { subName ->
   Project subproject = project("${project.path}:${subName}")
   Configuration configuration = configurations.create(subproject.name)
