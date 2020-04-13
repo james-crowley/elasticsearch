@@ -343,7 +343,7 @@ class BuildPlugin implements Plugin<Project> {
     }
 
     static void assertRepositoryURIIsSecure(final String repositoryName, final String projectPath, final URI uri) {
-        if (uri != null && ["file", "http", "https", "s3"].contains(uri.getScheme()) == false) {
+        if (uri != null && ["file", "https", "s3"].contains(uri.getScheme()) == false) {
             final String message = String.format(
                     Locale.ROOT,
                     "repository [%s] on project with path [%s] is not using a secure protocol for artifacts on [%s]",
