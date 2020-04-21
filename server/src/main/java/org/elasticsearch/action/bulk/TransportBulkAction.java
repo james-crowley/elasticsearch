@@ -168,7 +168,9 @@ public class TransportBulkAction extends HandledTransportAction<BulkRequest, Bul
             IndexRequest indexRequest = getIndexWriteRequest(actionRequest);
             if (indexRequest != null) {
                 // Each index request needs to be evaluated, because this method also modifies the IndexRequest
-                boolean indexRequestHasPipeline = resolvePipelines(actionRequest, indexRequest, metadata);
+                boolean preferV2Templates = bulkRequest.preferV2Templates() == null ?
+                    IndexMetadata.PREFER_V2_TEMPLATES_SETTING.getDefault(Settings.EMPTY) : bulkRequest.preferV2Templates();
+                boolean indexRequestHasPipeline = resolvePipelines(actionRequest, indexRequest, preferV2Templates, metadata);
                 hasIndexRequestsWithPipelines |= indexRequestHasPipeline;
             }
 
@@ -239,7 +241,7 @@ public class TransportBulkAction extends HandledTransportAction<BulkRequest, Bul
             } else {
                 final AtomicInteger counter = new AtomicInteger(autoCreateIndices.size());
                 for (String index : autoCreateIndices) {
-                    createIndex(index, bulkRequest.timeout(), new ActionListener<CreateIndexResponse>() {
+                    createIndex(index, bulkRequest.preferV2Templates(), bulkRequest.timeout(), new ActionListener<CreateIndexResponse>() {
                         @Override
                         public void onResponse(CreateIndexResponse result) {
                             if (counter.decrementAndGet() == 0) {
@@ -274,7 +276,8 @@ public class TransportBulkAction extends HandledTransportAction<BulkRequest, Bul
         }
     }
 
-    static boolean resolvePipelines(final DocWriteRequest<?> originalRequest, final IndexRequest indexRequest, final Metadata metadata) {
+    static boolean resolvePipelines(final DocWriteRequest<?> originalRequest, final IndexRequest indexRequest,
+                                    final boolean preferV2Templates, final Metadata metadata) {
         if (indexRequest.isPipelineResolved() == false) {
             final String requestPipeline = indexRequest.getPipeline();
             indexRequest.setPipeline(IngestService.NOOP_PIPELINE_NAME);
@@ -310,12 +313,12 @@ public class TransportBulkAction extends HandledTransportAction<BulkRequest, Bul
                     indexRequest.setFinalPipeline(finalPipeline);
                 }
             } else if (indexRequest.index() != null) {
-                // the index does not exist yet (and this is a valid request), so match index templates to look for pipelines
-                List<IndexTemplateMetadata> templates = MetadataIndexTemplateService.findV1Templates(metadata, indexRequest.index(), null);
-                assert (templates != null);
-                // order of templates are highest order first
-                for (final IndexTemplateMetadata template : templates) {
-                    final Settings settings = template.settings();
+                // the index does not exist yet (and this is a valid request), so match index
+                // templates to look for pipelines in either a matching V2 template (which takes
+                // precedence), or if a V2 template does not match, any V1 templates
+                String v2Template = MetadataIndexTemplateService.findV2Template(metadata, indexRequest.index(), false);
+                if (v2Template != null && preferV2Templates) {
+                    Settings settings = MetadataIndexTemplateService.resolveSettings(metadata, v2Template);
                     if (defaultPipeline == null && IndexSettings.DEFAULT_PIPELINE.exists(settings)) {
                         defaultPipeline = IndexSettings.DEFAULT_PIPELINE.get(settings);
                         // we can not break in case a lower-order template has a final pipeline that we need to collect
@@ -324,13 +327,31 @@ public class TransportBulkAction extends HandledTransportAction<BulkRequest, Bul
                         finalPipeline = IndexSettings.FINAL_PIPELINE.get(settings);
                         // we can not break in case a lower-order template has a default pipeline that we need to collect
                     }
-                    if (defaultPipeline != null && finalPipeline != null) {
-                        // we can break if we have already collected a default and final pipeline
-                        break;
+                    indexRequest.setPipeline(defaultPipeline == null ? IngestService.NOOP_PIPELINE_NAME : defaultPipeline);
+                    indexRequest.setFinalPipeline(finalPipeline == null ? IngestService.NOOP_PIPELINE_NAME : finalPipeline);
+                } else {
+                    List<IndexTemplateMetadata> templates =
+                            MetadataIndexTemplateService.findV1Templates(metadata, indexRequest.index(), null);
+                    assert (templates != null);
+                    // order of templates are highest order first
+                    for (final IndexTemplateMetadata template : templates) {
+                        final Settings settings = template.settings();
+                        if (defaultPipeline == null && IndexSettings.DEFAULT_PIPELINE.exists(settings)) {
+                            defaultPipeline = IndexSettings.DEFAULT_PIPELINE.get(settings);
+                            // we can not break in case a lower-order template has a final pipeline that we need to collect
+                        }
+                        if (finalPipeline == null && IndexSettings.FINAL_PIPELINE.exists(settings)) {
+                            finalPipeline = IndexSettings.FINAL_PIPELINE.get(settings);
+                            // we can not break in case a lower-order template has a default pipeline that we need to collect
+                        }
+                        if (defaultPipeline != null && finalPipeline != null) {
+                            // we can break if we have already collected a default and final pipeline
+                            break;
+                        }
                     }
+                    indexRequest.setPipeline(defaultPipeline == null ? IngestService.NOOP_PIPELINE_NAME : defaultPipeline);
+                    indexRequest.setFinalPipeline(finalPipeline == null ? IngestService.NOOP_PIPELINE_NAME : finalPipeline);
                 }
-                indexRequest.setPipeline(defaultPipeline != null ? defaultPipeline : IngestService.NOOP_PIPELINE_NAME);
-                indexRequest.setFinalPipeline(finalPipeline != null ? finalPipeline : IngestService.NOOP_PIPELINE_NAME);
             }
 
             if (requestPipeline != null) {
@@ -364,11 +385,12 @@ public class TransportBulkAction extends HandledTransportAction<BulkRequest, Bul
         return autoCreateIndex.shouldAutoCreate(index, state);
     }
 
-    void createIndex(String index, TimeValue timeout, ActionListener<CreateIndexResponse> listener) {
+    void createIndex(String index, Boolean preferV2Templates, TimeValue timeout, ActionListener<CreateIndexResponse> listener) {
         CreateIndexRequest createIndexRequest = new CreateIndexRequest();
         createIndexRequest.index(index);
         createIndexRequest.cause("auto(bulk api)");
         createIndexRequest.masterNodeTimeout(timeout);
+        createIndexRequest.preferV2Templates(preferV2Templates);
         client.admin().indices().create(createIndexRequest, listener);
     }
 
