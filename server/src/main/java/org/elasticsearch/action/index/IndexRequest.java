@@ -25,6 +25,7 @@ import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.CompositeIndicesRequest;
 import org.elasticsearch.action.DocWriteRequest;
 import org.elasticsearch.action.RoutingMissingException;
+import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.replication.ReplicatedWriteRequest;
 import org.elasticsearch.action.support.replication.ReplicationRequest;
 import org.elasticsearch.client.Requests;
@@ -116,6 +117,7 @@ public class IndexRequest extends ReplicatedWriteRequest<IndexRequest> implement
     private boolean isRetry = false;
     private long ifSeqNo = UNASSIGNED_SEQ_NO;
     private long ifPrimaryTerm = UNASSIGNED_PRIMARY_TERM;
+    private Boolean preferV2Templates;
 
     public IndexRequest(StreamInput in) throws IOException {
         super(in);
@@ -153,6 +155,9 @@ public class IndexRequest extends ReplicatedWriteRequest<IndexRequest> implement
         } else {
             ifSeqNo = UNASSIGNED_SEQ_NO;
             ifPrimaryTerm = UNASSIGNED_PRIMARY_TERM;
+        }
+        if (in.getVersion().onOrAfter(Version.V_7_8_0)) {
+            this.preferV2Templates = in.readOptionalBoolean();
         }
     }
 
@@ -255,6 +260,15 @@ public class IndexRequest extends ReplicatedWriteRequest<IndexRequest> implement
         }
 
         return validationException;
+    }
+
+    @Override
+    public IndicesOptions indicesOptions() {
+        if (opType == OpType.CREATE) {
+            return IndicesOptions.strictSingleIndexIncludeDataStreamNoExpandForbidClosed();
+        } else {
+            return IndicesOptions.strictSingleIndexNoExpandForbidClosed();
+        }
     }
 
     /**
@@ -633,6 +647,16 @@ public class IndexRequest extends ReplicatedWriteRequest<IndexRequest> implement
         return ifSeqNo;
     }
 
+    public IndexRequest preferV2Templates(@Nullable Boolean preferV2Templates) {
+        this.preferV2Templates = preferV2Templates;
+        return this;
+    }
+
+    @Nullable
+    public Boolean preferV2Templates() {
+        return this.preferV2Templates;
+    }
+
     /**
      * If set, only perform this indexing request if the document was last modification was assigned this primary term.
      *
@@ -735,6 +759,9 @@ public class IndexRequest extends ReplicatedWriteRequest<IndexRequest> implement
             throw new IllegalStateException(
                 "sequence number based compare and write is not supported until all nodes are on version 7.0 or higher. " +
                     "Stream version [" + out.getVersion() + "]");
+        }
+        if (out.getVersion().onOrAfter(Version.V_7_8_0)) {
+            out.writeOptionalBoolean(preferV2Templates);
         }
     }
 

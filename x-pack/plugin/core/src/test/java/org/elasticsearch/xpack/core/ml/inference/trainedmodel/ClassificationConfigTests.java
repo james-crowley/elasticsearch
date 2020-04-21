@@ -21,12 +21,17 @@ public class ClassificationConfigTests extends AbstractBWCSerializationTestCase<
     public static ClassificationConfig randomClassificationConfig() {
         return new ClassificationConfig(randomBoolean() ? null : randomIntBetween(-1, 10),
             randomBoolean() ? null : randomAlphaOfLength(10),
-            randomBoolean() ? null : randomAlphaOfLength(10)
+            randomBoolean() ? null : randomAlphaOfLength(10),
+            randomBoolean() ? null : randomIntBetween(0, 10),
+            randomFrom(PredictionFieldType.values())
             );
     }
 
     public static ClassificationConfig mutateForVersion(ClassificationConfig instance, Version version) {
         ClassificationConfig.Builder builder = new ClassificationConfig.Builder(instance);
+        if (version.before(Version.V_7_8_0)) {
+            builder.setPredictionFieldType(PredictionFieldType.STRING);
+        }
         if (version.before(Version.V_7_7_0)) {
             builder.setNumTopFeatureImportanceValues(0);
         }

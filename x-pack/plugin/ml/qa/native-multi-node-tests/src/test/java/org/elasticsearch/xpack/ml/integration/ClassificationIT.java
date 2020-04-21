@@ -5,7 +5,8 @@
  */
 package org.elasticsearch.xpack.ml.integration;
 
-import com.google.common.collect.Ordering;
+import org.apache.logging.log4j.message.ParameterizedMessage;
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchStatusException;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
@@ -41,8 +42,10 @@ import java.util.Map;
 import java.util.Set;
 
 import static java.util.stream.Collectors.toList;
+import static org.elasticsearch.xpack.core.ml.MlTasks.AWAITING_UPGRADE;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
@@ -52,6 +55,8 @@ import static org.hamcrest.Matchers.in;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
 
 public class ClassificationIT extends MlNativeDataFrameAnalyticsIntegTestCase {
@@ -499,6 +504,74 @@ public class ClassificationIT extends MlNativeDataFrameAnalyticsIntegTestCase {
         assertThat(secondRunTrainingRowsIds, equalTo(firstRunTrainingRowsIds));
     }
 
+    public void testSetUpgradeMode_ExistingTaskGetsUnassigned() throws Exception {
+        initialize("classification_set_upgrade_mode");
+        indexData(sourceIndex, 300, 0, KEYWORD_FIELD);
+
+        assertThat(upgradeMode(), is(false));
+
+        DataFrameAnalyticsConfig config = buildAnalytics(jobId, sourceIndex, destIndex, null, new Classification(KEYWORD_FIELD));
+        registerAnalytics(config);
+        putAnalytics(config);
+        startAnalytics(jobId);
+        assertThat(analyticsTaskList(), hasSize(1));
+        assertThat(analyticsAssignedTaskList(), hasSize(1));
+
+        setUpgradeModeTo(true);
+        assertThat(analyticsTaskList(), hasSize(1));
+        assertThat(analyticsAssignedTaskList(), is(empty()));
+
+        assertBusy(() -> {
+            try {
+                GetDataFrameAnalyticsStatsAction.Response.Stats analyticsStats = getAnalyticsStats(jobId);
+                assertThat(analyticsStats.getAssignmentExplanation(), is(equalTo(AWAITING_UPGRADE.getExplanation())));
+                assertThat(analyticsStats.getNode(), is(nullValue()));
+            } catch (ElasticsearchException e) {
+                logger.error(new ParameterizedMessage("[{}] Encountered exception while fetching analytics stats", jobId), e);
+                fail(e.getDetailedMessage());
+            }
+        });
+
+        setUpgradeModeTo(false);
+        assertThat(analyticsTaskList(), hasSize(1));
+        assertBusy(() -> assertThat(analyticsAssignedTaskList(), hasSize(1)));
+
+        assertBusy(() -> {
+            try {
+                GetDataFrameAnalyticsStatsAction.Response.Stats analyticsStats = getAnalyticsStats(jobId);
+                assertThat(analyticsStats.getAssignmentExplanation(), is(not(equalTo(AWAITING_UPGRADE.getExplanation()))));
+            } catch (ElasticsearchException e) {
+                logger.error(new ParameterizedMessage("[{}] Encountered exception while fetching analytics stats", jobId), e);
+                fail(e.getDetailedMessage());
+            }
+        });
+
+        waitUntilAnalyticsIsStopped(jobId);
+        assertProgress(jobId, 100, 100, 100, 100);
+    }
+
+    public void testSetUpgradeMode_NewTaskDoesNotStart() throws Exception {
+        initialize("classification_set_upgrade_mode_task_should_not_start");
+        indexData(sourceIndex, 100, 0, KEYWORD_FIELD);
+
+        assertThat(upgradeMode(), is(false));
+
+        DataFrameAnalyticsConfig config = buildAnalytics(jobId, sourceIndex, destIndex, null, new Classification(KEYWORD_FIELD));
+        registerAnalytics(config);
+        putAnalytics(config);
+
+        setUpgradeModeTo(true);
+
+        ElasticsearchStatusException e = expectThrows(ElasticsearchStatusException.class, () -> startAnalytics(config.getId()));
+        assertThat(e.status(), is(equalTo(RestStatus.TOO_MANY_REQUESTS)));
+        assertThat(
+            e.getMessage(),
+            is(equalTo("Cannot perform cluster:admin/xpack/ml/data_frame/analytics/start action while upgrade mode is enabled")));
+
+        assertThat(analyticsTaskList(), is(empty()));
+        assertThat(analyticsAssignedTaskList(), is(empty()));
+    }
+
     public void testDeleteExpiredData_RemovesUnusedState() throws Exception {
         initialize("classification_delete_expired_data");
         indexData(sourceIndex, 100, 0, KEYWORD_FIELD);
@@ -634,7 +707,11 @@ public class ClassificationIT extends MlNativeDataFrameAnalyticsIntegTestCase {
         // Assert that all the class probabilities lie within [0, 1] interval.
         classProbabilities.forEach(p -> assertThat(p, allOf(greaterThanOrEqualTo(0.0), lessThanOrEqualTo(1.0))));
         // Assert that the top classes are listed in the order of decreasing scores.
-        assertThat(Ordering.natural().reverse().isOrdered(classScores), is(true));
+        double prevScore = classScores.get(0);
+        for (int i = 1; i < classScores.size(); ++i) {
+            double score = classScores.get(i);
+            assertThat("class " + i, score, lessThanOrEqualTo(prevScore));
+        }
     }
 
     private <T> void assertEvaluation(String dependentVariable, List<T> dependentVariableValues, String predictedClassField) {

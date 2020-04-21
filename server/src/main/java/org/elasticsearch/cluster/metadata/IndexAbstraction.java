@@ -31,7 +31,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import static org.elasticsearch.cluster.metadata.DataStream.getBackingIndexName;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_HIDDEN_SETTING;
+import static org.elasticsearch.common.collect.List.copyOf;
 
 /**
  * An index abstraction is a reference to one or more concrete indices.
@@ -66,6 +68,12 @@ public interface IndexAbstraction {
      */
     @Nullable
     IndexMetadata getWriteIndex();
+
+    /**
+     * @return the data stream to which this index belongs or <code>null</code> if this is not a concrete index or
+     * if it is a concrete index that does not belong to a data stream.
+     */
+    @Nullable DataStream getParentDataStream();
 
     /**
      * @return whether this index abstraction is hidden or not
@@ -114,9 +122,15 @@ public interface IndexAbstraction {
     class Index implements IndexAbstraction {
 
         private final IndexMetadata concreteIndex;
+        private final DataStream dataStream;
+
+        public Index(IndexMetadata indexMetadata, DataStream dataStream) {
+            this.concreteIndex = indexMetadata;
+            this.dataStream = dataStream;
+        }
 
         public Index(IndexMetadata indexMetadata) {
-            this.concreteIndex = indexMetadata;
+            this(indexMetadata, null);
         }
 
         @Override
@@ -137,6 +151,11 @@ public interface IndexAbstraction {
         @Override
         public IndexMetadata getWriteIndex() {
             return concreteIndex;
+        }
+
+        @Override
+        public DataStream getParentDataStream() {
+            return dataStream;
         }
 
         @Override
@@ -180,6 +199,12 @@ public interface IndexAbstraction {
         @Nullable
         public IndexMetadata getWriteIndex() {
             return writeIndex.get();
+        }
+
+        @Override
+        public DataStream getParentDataStream() {
+            // aliases may not be part of a data stream
+            return null;
         }
 
         @Override
@@ -256,6 +281,50 @@ public interface IndexAbstraction {
 
         private boolean isNonEmpty(List<IndexMetadata> idxMetas) {
             return (Objects.isNull(idxMetas) || idxMetas.isEmpty()) == false;
+        }
+    }
+
+    class DataStream implements IndexAbstraction {
+
+        private final org.elasticsearch.cluster.metadata.DataStream dataStream;
+        private final List<IndexMetadata> dataStreamIndices;
+        private final IndexMetadata writeIndex;
+
+        public DataStream(org.elasticsearch.cluster.metadata.DataStream dataStream, List<IndexMetadata> dataStreamIndices) {
+            this.dataStream = dataStream;
+            this.dataStreamIndices = copyOf(dataStreamIndices);
+            this.writeIndex =  dataStreamIndices.get(dataStreamIndices.size() - 1);
+            assert writeIndex.getIndex().getName().equals(getBackingIndexName(dataStream.getName(), dataStream.getGeneration()));
+        }
+
+        @Override
+        public String getName() {
+            return dataStream.getName();
+        }
+
+        @Override
+        public Type getType() {
+            return Type.DATA_STREAM;
+        }
+
+        @Override
+        public List<IndexMetadata> getIndices() {
+            return dataStreamIndices;
+        }
+
+        public IndexMetadata getWriteIndex() {
+            return writeIndex;
+        }
+
+        @Override
+        public DataStream getParentDataStream() {
+            // a data stream cannot have a parent data stream
+            return null;
+        }
+
+        @Override
+        public boolean isHidden() {
+            return false;
         }
     }
 }

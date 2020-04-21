@@ -12,24 +12,27 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.ObjectParser;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.search.DocValueFormat;
 import org.elasticsearch.search.aggregations.AggregationBuilder;
 import org.elasticsearch.search.aggregations.AggregatorFactories;
 import org.elasticsearch.search.aggregations.AggregatorFactory;
+import org.elasticsearch.search.aggregations.support.CoreValuesSourceType;
+import org.elasticsearch.search.aggregations.support.FieldContext;
 import org.elasticsearch.search.aggregations.support.MultiValuesSourceAggregationBuilder;
 import org.elasticsearch.search.aggregations.support.MultiValuesSourceAggregatorFactory;
 import org.elasticsearch.search.aggregations.support.MultiValuesSourceFieldConfig;
 import org.elasticsearch.search.aggregations.support.MultiValuesSourceParseHelper;
 import org.elasticsearch.search.aggregations.support.ValueType;
-import org.elasticsearch.search.aggregations.support.ValuesSource;
 import org.elasticsearch.search.aggregations.support.ValuesSourceConfig;
+import org.elasticsearch.search.aggregations.support.ValuesSourceType;
 
 import java.io.IOException;
 import java.util.Map;
 import java.util.Objects;
 
-public class TTestAggregationBuilder extends MultiValuesSourceAggregationBuilder.LeafOnly<ValuesSource.Numeric, TTestAggregationBuilder> {
+public class TTestAggregationBuilder extends MultiValuesSourceAggregationBuilder.LeafOnly<TTestAggregationBuilder> {
     public static final String NAME = "t_test";
     public static final ParseField A_FIELD = new ParseField("a");
     public static final ParseField B_FIELD = new ParseField("b");
@@ -41,11 +44,10 @@ public class TTestAggregationBuilder extends MultiValuesSourceAggregationBuilder
 
     static {
         MultiValuesSourceParseHelper.declareCommon(PARSER, true, ValueType.NUMERIC);
-        MultiValuesSourceParseHelper.declareField(A_FIELD.getPreferredName(), PARSER, true, false);
-        MultiValuesSourceParseHelper.declareField(B_FIELD.getPreferredName(), PARSER, true, false);
+        MultiValuesSourceParseHelper.declareField(A_FIELD.getPreferredName(), PARSER, true, false, true);
+        MultiValuesSourceParseHelper.declareField(B_FIELD.getPreferredName(), PARSER, true, false, true);
         PARSER.declareString(TTestAggregationBuilder::testType, TYPE_FIELD);
         PARSER.declareInt(TTestAggregationBuilder::tails, TAILS_FIELD);
-
     }
 
     private TTestType testType = TTestType.HETEROSCEDASTIC;
@@ -53,7 +55,7 @@ public class TTestAggregationBuilder extends MultiValuesSourceAggregationBuilder
     private int tails = 2;
 
     public TTestAggregationBuilder(String name) {
-        super(name, ValueType.NUMERIC);
+        super(name);
     }
 
     public TTestAggregationBuilder(TTestAggregationBuilder clone,
@@ -91,7 +93,7 @@ public class TTestAggregationBuilder extends MultiValuesSourceAggregationBuilder
     }
 
     public TTestAggregationBuilder(StreamInput in) throws IOException {
-        super(in, ValueType.NUMERIC);
+        super(in);
         testType = in.readEnum(TTestType.class);
         tails = in.readVInt();
     }
@@ -112,15 +114,36 @@ public class TTestAggregationBuilder extends MultiValuesSourceAggregationBuilder
         out.writeVInt(tails);
     }
 
+    @Override
+    protected ValuesSourceType defaultValueSourceType() {
+        return CoreValuesSourceType.NUMERIC;
+    }
+
 
     @Override
-    protected MultiValuesSourceAggregatorFactory<ValuesSource.Numeric> innerBuild(
+    protected MultiValuesSourceAggregatorFactory innerBuild(
         QueryShardContext queryShardContext,
-        Map<String, ValuesSourceConfig<ValuesSource.Numeric>> configs,
+        Map<String, ValuesSourceConfig> configs,
+        Map<String, QueryBuilder> filters,
         DocValueFormat format,
         AggregatorFactory parent,
         AggregatorFactories.Builder subFactoriesBuilder) throws IOException {
-        return new TTestAggregatorFactory(name, configs, testType, tails, format, queryShardContext, parent, subFactoriesBuilder, metadata);
+        QueryBuilder filterA = filters.get(A_FIELD.getPreferredName());
+        QueryBuilder filterB = filters.get(B_FIELD.getPreferredName());
+        if (filterA == null && filterB == null) {
+            FieldContext fieldContextA = configs.get(A_FIELD.getPreferredName()).fieldContext();
+            FieldContext fieldContextB = configs.get(B_FIELD.getPreferredName()).fieldContext();
+            if (fieldContextA != null && fieldContextB != null) {
+                if (fieldContextA.field().equals(fieldContextB.field())) {
+                    throw new IllegalArgumentException("The same field [" + fieldContextA.field() +
+                        "] is used for both population but no filters are specified.");
+                }
+            }
+        }
+
+        return new TTestAggregatorFactory(name, configs, testType, tails,
+            filterA, filterB, format, queryShardContext, parent,
+            subFactoriesBuilder, metadata);
     }
 
     @Override
