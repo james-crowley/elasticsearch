@@ -33,7 +33,7 @@ import java.util.regex.Pattern;
 
 public class Jdk implements Buildable, Iterable<File> {
 
-    private static final List<String> ALLOWED_ARCHITECTURES = List.of("aarch64", "x64");
+    private static final List<String> ALLOWED_ARCHITECTURES = List.of("aarch64", "ppc64le", "s390x", "x64");
     private static final List<String> ALLOWED_VENDORS = List.of("adoptopenjdk", "openjdk");
     private static final List<String> ALLOWED_PLATFORMS = List.of("darwin", "linux", "windows", "mac");
     private static final Pattern VERSION_PATTERN = Pattern.compile("(\\d+)(\\.\\d+\\.\\d+)?\\+(\\d+(?:\\.\\d+)?)(@([a-f0-9]{32}))?");

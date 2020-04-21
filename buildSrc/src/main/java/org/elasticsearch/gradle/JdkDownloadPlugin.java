@@ -110,7 +110,6 @@ public class JdkDownloadPlugin implements Plugin<Project> {
             String repoName = REPO_NAME_PREFIX + jdk.getVendor() + "_" + jdk.getVersion();
             String repoUrl;
             String artifactPattern;
-
             if (jdk.getVendor().equals("adoptopenjdk")) {
                 repoUrl = "https://api.adoptopenjdk.net/v3/binary/version/";
                 if (jdk.getMajor().equals("8")) {
