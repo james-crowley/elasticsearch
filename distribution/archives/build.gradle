@@ -183,19 +183,19 @@ tasks.register('buildLinuxAarch64Tar', SymbolicLinkPreservingTar) {
   with archiveFiles(modulesFiles(false, 'linux-aarch64'), 'tar', 'linux', 'aarch64', false, true)
 }
 
-task buildLinuxS390xTar(type: SymbolicLinkPreservingTar) {
+tasks.register('buildLinuxS390xTar', SymbolicLinkPreservingTar) {
   configure(commonTarConfig)
   archiveClassifier = 'linux-s390x'
-  with archiveFiles(modulesFiles(false, 'linux'), 'tar', 'linux', 's390x', false, true)
+  with archiveFiles(modulesFiles(false, 'linux-s390x'), 'tar', 'linux', 's390x', false, true)
 }
 
-task buildLinuxPpc64leTar(type: SymbolicLinkPreservingTar) {
+tasks.register('buildLinuxPpc64leTar', SymbolicLinkPreservingTar) {
   configure(commonTarConfig)
   archiveClassifier = 'linux-ppc64le'
-  with archiveFiles(modulesFiles(false, 'linux'), 'tar', 'linux', 'ppc64le', false, true)
+  with archiveFiles(modulesFiles(false, 'linux-ppc64le'), 'tar', 'linux', 'ppc64le', false, true)
 }
 
-task buildLinuxTar(type: SymbolicLinkPreservingTar) {
+tasks.register('buildLinuxTar', SymbolicLinkPreservingTar) {
   configure(commonTarConfig)
   archiveClassifier = 'linux-x86_64'
   with archiveFiles(modulesFiles(false, 'linux-x86_64'), 'tar', 'linux', 'x64', false, true)
@@ -207,16 +207,16 @@ tasks.register('buildOssLinuxAarch64Tar', SymbolicLinkPreservingTar) {
   with archiveFiles(modulesFiles(true, 'linux-aarch64'), 'tar', 'linux', 'aarch64', true, true)
 }
 
-task buildOssLinuxS390xTar(type: SymbolicLinkPreservingTar) {
+tasks.register('buildOssLinuxS390xTar', SymbolicLinkPreservingTar) {
   configure(commonTarConfig)
   archiveClassifier = 'linux-s390x'
-  with archiveFiles(modulesFiles(true, 'linux'), 'tar', 'linux', 's390x', true, true)
+  with archiveFiles(modulesFiles(true, 'linux-s390x'), 'tar', 'linux', 's390x', true, true)
 }
 
-task buildOssLinuxPpc64leTar(type: SymbolicLinkPreservingTar) {
+tasks.register('buildOssLinuxPpc64leTar', SymbolicLinkPreservingTar) {
   configure(commonTarConfig)
   archiveClassifier = 'linux-ppc64le'
-  with archiveFiles(modulesFiles(true, 'linux'), 'tar', 'linux', 'ppc64le', true, true)
+  with archiveFiles(modulesFiles(true, 'linux-ppc64le'), 'tar', 'linux', 'ppc64le', true, true)
 }
 
 task buildOssLinuxTar(type: SymbolicLinkPreservingTar) {

@@ -361,15 +361,15 @@ Closure commonDebConfig(boolean oss, boolean jdk, String architecture) {
   }
 }
 
-task buildS390xDeb(type: Deb) {
+tasks.register('buildS390xDeb', Deb) {
   configure(commonDebConfig(false, true, 's390x'))
 }
 
-task buildPpc64leDeb(type: Deb) {
+tasks.register('buildPpc64leDeb', Deb) {
   configure(commonDebConfig(false, true, 'ppc64le'))
 }
 
-task buildAarch64Deb(type: Deb) {
+tasks.register('buildAarch64Deb', Deb) {
   configure(commonDebConfig(false, true, 'aarch64'))
 }
 
@@ -377,15 +377,15 @@ tasks.register('buildDeb', Deb) {
   configure(commonDebConfig(false, true, 'x64'))
 }
 
-task buildS390xOssDeb(type: Deb) {
+tasks.register('buildS390xOssDeb', Deb) {
   configure(commonDebConfig(true, true, 's390x'))
 }
 
-task buildPpc64leOssDeb(type: Deb) {
+tasks.register('buildPpc64leOssDeb', Deb) {
   configure(commonDebConfig(true, true, 'ppc64le'))
 }
 
-task buildAarch64OssDeb(type: Deb) {
+tasks.register('buildAarch64OssDeb', Deb) {
   configure(commonDebConfig(true, true, 'aarch64'))
 }
 
@@ -430,15 +430,15 @@ Closure commonRpmConfig(boolean oss, boolean jdk, String architecture) {
   }
 }
 
-task buildS390xRpm(type: Rpm) {
-  configure(commonRpmConfig(false, true, 'aarch64'))
+tasks.register('buildS390xRpm', Rpm) {
+  configure(commonRpmConfig(false, true, 's390x'))
 }
 
-task buildPpc64leRpm(type: Rpm) {
-  configure(commonRpmConfig(false, true, 'aarch64'))
+tasks.register('buildPpc64leRpm', Rpm) {
+  configure(commonRpmConfig(false, true, 'ppc64le'))
 }
 
-task buildAarch64Rpm(type: Rpm) {
+tasks.register('buildAarch64Rpm', Rpm) {
   configure(commonRpmConfig(false, true, 'aarch64'))
 }
 
@@ -446,15 +446,15 @@ tasks.register('buildRpm', Rpm) {
   configure(commonRpmConfig(false, true, 'x64'))
 }
 
-task buildS390xOssRpm(type: Rpm) {
+tasks.register('buildS390xOssRpm', Rpm) {
   configure(commonRpmConfig(true, true, 's390x'))
 }
 
-task buildPpc64leOssRpm(type: Rpm) {
+tasks.register('buildPpc64leOssRpm', Rpm) {
   configure(commonRpmConfig(true, true, 'ppc64le'))
 }
 
-task buildAarch64OssRpm(type: Rpm) {
+tasks.register('buildAarch64OssRpm', Rpm) {
   configure(commonRpmConfig(true, true, 'aarch64'))
 }
 
