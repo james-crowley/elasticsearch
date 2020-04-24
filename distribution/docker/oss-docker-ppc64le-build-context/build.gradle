@@ -1,0 +1,11 @@
+apply plugin: 'base'
+
+task buildOssDockerBuildContext(type: Tar) {
+  extension = 'tar.gz'
+  compression = Compression.GZIP
+  archiveClassifier = "docker-build-context-ppc64le"
+  archiveBaseName = "elasticsearch-oss"
+  with dockerBuildContext("ppc64le", true, false)
+}
+
+assemble.dependsOn buildOssDockerBuildContext

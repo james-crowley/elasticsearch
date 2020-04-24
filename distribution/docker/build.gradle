@@ -15,15 +15,23 @@ testFixtures.useFixture()
 configurations {
   dockerPlugins
   aarch64DockerSource
+  s390xDockerSource
+  ppc64leDockerSource
   dockerSource
   aarch64OssDockerSource
+  s390xOssDockerSource
+  ppc64leOssDockerSource
   ossDockerSource
 }
 
 dependencies {
   aarch64DockerSource project(path: ":distribution:archives:linux-aarch64-tar")
+  s390xDockerSource project(path: ":distribution:archives:linux-s390x-tar")
+  ppc64leDockerSource project(path: ":distribution:archives:linux-ppc64le-tar")
   dockerSource project(path: ":distribution:archives:linux-tar")
   aarch64OssDockerSource project(path: ":distribution:archives:oss-linux-aarch64-tar")
+  s390xOssDockerSource project(path: ":distribution:archives:oss-linux-s390x-tar")
+  ppc64leOssDockerSource project(path: ":distribution:archives:oss-linux-ppc64le-tar")
   ossDockerSource project(path: ":distribution:archives:oss-linux-tar")
 }
 
@@ -42,8 +50,18 @@ ext.expansions = { architecture, oss, local ->
       tini_arch = "amd64"
       classifier = "linux-x86_64"
       break;
+    case "s390x":
+      base_image = "s390x/clefos:7"
+      tini_arch = "s390x"
+      classifier = "linux-s390x"
+      break;
+    case "ppc64le":
+      base_image = "ppc64le/centos:7"
+      tini_arch = "ppc64le"
+      classifier = "linux-ppc64le"
+      break;
     default:
-      throw new IllegalArgumentException("unrecongized architecture [" + architecture + "], must be one of (aarch64|x64)")
+      throw new IllegalArgumentException("unrecongized architecture [" + architecture + "], must be one of (aarch64|x64|s390x|ppc64le)")
   }
   final String elasticsearch = oss ? "elasticsearch-oss-${VersionProperties.elasticsearch}-${classifier}.tar.gz" : "elasticsearch-${VersionProperties.elasticsearch}-${classifier}.tar.gz"
   return [
@@ -59,11 +77,29 @@ ext.expansions = { architecture, oss, local ->
 }
 
 private static String buildPath(final String architecture, final boolean oss) {
-  return "build/${"aarch64".equals(architecture) ? 'aarch64-' : ''}${oss ? 'oss-' : ''}docker"
+  return "build/${architecture != 'x64' ? architecture + '-' : ''}${oss ? 'oss-' : ''}docker"
 }
 
 private static String taskName(final String prefix, final String architecture, final boolean oss, final String suffix) {
-  return "${prefix}${"aarch64".equals(architecture) ? 'Aarch64' : ''}${oss ? 'Oss' : ''}${suffix}"
+  String formatted_architecture = null
+  switch (architecture) {
+    case "aarch64":
+      formatted_architecture = "Aarch64"
+      break;
+    case "x64":
+      formatted_architecture = ""
+      break;
+    case "s390x":
+      formatted_architecture = "S390x"
+      break;
+    case "ppc64le":
+      formatted_architecture = "Ppc64le"
+      break;
+    default:
+      throw new IllegalArgumentException("unrecongized architecture [" + architecture + "], must be one of (aarch64|x64|s390x|ppc64le)")
+  }
+
+  return "${prefix}" + formatted_architecture + "${oss ? 'Oss' : ''}${suffix}"
 }
 
 project.ext {
@@ -106,11 +142,23 @@ void addCopyDockerContextTask(final String architecture, final boolean oss) {
       } else {
         from configurations.aarch64DockerSource
       }
-    } else {
+    } else if ("x64".equals(architecture)) {
       if (oss) {
         from configurations.ossDockerSource
       } else {
         from configurations.dockerSource
+      }
+    } else if ("s390x".equals(architecture)) {
+      if (oss) {
+        from configurations.s390xOssDockerSource
+      } else {
+        from configurations.s390xDockerSource
+      }
+    } else if ("ppc64le".equals(architecture)) {
+      if (oss) {
+        from configurations.ppc64leDockerSource
+      } else {
+        from configurations.ppc64leDockerSource
       }
     }
 
@@ -207,7 +255,7 @@ void addBuildDockerImage(final String architecture, final boolean oss) {
   assemble.dependsOn(buildDockerImageTask)
 }
 
-for (final String architecture : ["aarch64", "x64"]) {
+for (final String architecture : ["aarch64", "x64", "s390x", "ppc64le"]) {
   for (final boolean oss : [false, true]) {
     addCopyDockerContextTask(architecture, oss)
     addBuildDockerImage(architecture, oss)
@@ -229,12 +277,20 @@ subprojects { Project subProject ->
   if (subProject.name.endsWith('-export')) {
     apply plugin: 'distribution'
 
-    final String architecture = subProject.name.contains('aarch64-') ? 'aarch64' : 'x64'
+    String architecture = "x64"
+    if (subProject.name.contains('aarch64-')) {
+      architecture = "aarch64"
+    } else if (subProject.name.contains('s390x-')) {
+      architecture = "s390x"
+    } else if (subProject.name.contains('ppc64le-')) {
+      architecture = "ppc64le"
+    }
+
     final boolean oss = subProject.name.contains('oss-')
 
     def exportTaskName = taskName("export", architecture, oss, "DockerImage")
     def buildTaskName = taskName("build", architecture, oss, "DockerImage")
-    def tarFile = "${parent.projectDir}/build/elasticsearch${"aarch64".equals(architecture) ? '-aarch64' : ''}${oss ? '-oss' : ''}_test.${VersionProperties.elasticsearch}.docker.tar"
+    def tarFile = "${parent.projectDir}/build/elasticsearch${architecture != 'x64' ? '-' + architecture : ''}${oss ? '-oss' : ''}_test.${VersionProperties.elasticsearch}.docker.tar"
 
     final Task exportDockerImageTask = task(exportTaskName, type: LoggedExec) {
       inputs.file("${parent.projectDir}/build/markers/${buildTaskName}.marker")
@@ -252,7 +308,7 @@ subprojects { Project subProject ->
 
     artifacts.add('default', file(tarFile)) {
       type 'tar'
-      name "elasticsearch${"aarch64".equals(architecture) ? '-aarch64' : ''}${oss ? '-oss' : ''}"
+      name "elasticsearch${architecture != 'x64' ? '-' + architecture : ''}}${oss ? '-oss' : ''}"
       builtBy exportTaskName
     }
 
