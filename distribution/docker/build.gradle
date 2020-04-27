@@ -308,7 +308,7 @@ subprojects { Project subProject ->
 
     artifacts.add('default', file(tarFile)) {
       type 'tar'
-      name "elasticsearch${architecture != 'x64' ? '-' + architecture : ''}}${oss ? '-oss' : ''}"
+      name "elasticsearch${architecture != 'x64' ? '-' + architecture : ''}${oss ? '-oss' : ''}"
       builtBy exportTaskName
     }
 
