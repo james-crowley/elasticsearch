@@ -66,8 +66,15 @@ public class XPackSettings {
     public static final Setting<Boolean> GRAPH_ENABLED = Setting.boolSetting("xpack.graph.enabled", true, Setting.Property.NodeScope);
 
     /** Setting for enabling or disabling machine learning. Defaults to true. */
-    public static final Setting<Boolean> MACHINE_LEARNING_ENABLED = Setting.boolSetting("xpack.ml.enabled", true,
-            Setting.Property.NodeScope);
+    public static final Setting<Boolean> MACHINE_LEARNING_ENABLED = Setting.boolSetting(
+        "xpack.ml.enabled",
+        ("s390x".equals(System.getProperty("os.arch")) || "ppc64le".equals(System.getProperty("os.arch"))) ? false : true,
+        value -> {
+            if (value && ("s390x".equals(System.getProperty("os.arch")) ||  "ppc64le".equals(System.getProperty("os.arch")))) {
+                throw new IllegalArgumentException("[xpack.ml.enabled] can not be set to [true] on (s390x|ppc64le)");
+            }
+        },
+        Setting.Property.NodeScope);
 
     /** Setting for enabling or disabling rollup. Defaults to true. */
     public static final Setting<Boolean> ROLLUP_ENABLED = Setting.boolSetting("xpack.rollup.enabled", true,
