@@ -156,7 +156,7 @@ void addCopyDockerContextTask(final String architecture, final boolean oss) {
       }
     } else if ("ppc64le".equals(architecture)) {
       if (oss) {
-        from configurations.ppc64leDockerSource
+        from configurations.ppc64leOssDockerSource
       } else {
         from configurations.ppc64leDockerSource
       }
