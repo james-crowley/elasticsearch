@@ -41,6 +41,10 @@ public class VersionProperties {
         return bundledJdkVendor;
     }
 
+    public static String getBundledJdkJvm() {
+        return bundledJdkJvm;
+    }
+
     public static Map<String, String> getVersions() {
         return versions;
     }
@@ -51,6 +55,7 @@ public class VersionProperties {
     private static final String bundledJdkLinux;
     private static final String bundledJdkWindows;
     private static final String bundledJdkVendor;
+    private static final String bundledJdkJvm;
     private static final Map<String, String> versions = new HashMap<String, String>();
 
     static {
@@ -62,6 +67,7 @@ public class VersionProperties {
         bundledJdkDarwin = props.getProperty("bundled_jdk_darwin", bundledJdk);
         bundledJdkLinux = props.getProperty("bundled_jdk_linux", bundledJdk);
         bundledJdkWindows = props.getProperty("bundled_jdk_windows", bundledJdk);
+        bundledJdkJvm = props.getProperty("bundled_jdk_jvm");
 
         for (String property : props.stringPropertyNames()) {
             versions.put(property, props.getProperty(property));

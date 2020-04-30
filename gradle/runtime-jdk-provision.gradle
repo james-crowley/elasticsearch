@@ -10,6 +10,7 @@ jdks {
         vendor = VersionProperties.bundledJdkVendor
         version = VersionProperties.getBundledJdk(OS.current().name().toLowerCase())
         platform = OS.current().name().toLowerCase()
+        jvm = VersionProperties.bundledJdkJvm
         architecture = Architecture.current().name().toLowerCase()
     }
 }

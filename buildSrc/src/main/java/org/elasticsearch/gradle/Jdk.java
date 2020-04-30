@@ -36,8 +36,9 @@ public class Jdk implements Buildable, Iterable<File> {
     private static final List<String> ALLOWED_ARCHITECTURES = List.of("aarch64", "ppc64le", "s390x", "x64");
     private static final List<String> ALLOWED_VENDORS = List.of("adoptopenjdk", "openjdk");
     private static final List<String> ALLOWED_PLATFORMS = List.of("darwin", "linux", "windows", "mac");
-    private static final Pattern VERSION_PATTERN = Pattern.compile("(\\d+)(\\.\\d+\\.\\d+)?\\+(\\d+(?:\\.\\d+)?)(@([a-f0-9]{32}))?");
-    private static final Pattern LEGACY_VERSION_PATTERN = Pattern.compile("(\\d)(u\\d+)\\+(b\\d+?)(@([a-f0-9]{32}))?");
+    private static final List<String> ALLOWED_JVMS = List.of("hotspot", "openj9");
+    private static final Pattern VERSION_PATTERN = Pattern.compile("(\\d+)(\\.\\d+\\.\\d+)?\\+(\\d+(?:\\.\\d+)?)(@([a-f0-9]{32}))?(_openj9-\\d+\\.\\d+\\.\\d+)?(-m\\d+)?");
+    private static final Pattern LEGACY_VERSION_PATTERN = Pattern.compile("(\\d)(u\\d+)\\+(b\\d+?)(@([a-f0-9]{32}))?(_openj9-\\d+\\.\\d+\\.\\d+)?(-m\\d+)?");
 
     private final String name;
     private final Configuration configuration;
@@ -45,6 +46,7 @@ public class Jdk implements Buildable, Iterable<File> {
     private final Property<String> vendor;
     private final Property<String> version;
     private final Property<String> platform;
+    private final Property<String> jvm;
     private final Property<String> architecture;
     private String baseVersion;
     private String major;
@@ -57,6 +59,7 @@ public class Jdk implements Buildable, Iterable<File> {
         this.vendor = objectFactory.property(String.class);
         this.version = objectFactory.property(String.class);
         this.platform = objectFactory.property(String.class);
+        this.jvm = objectFactory.property(String.class);
         this.architecture = objectFactory.property(String.class);
     }
 
@@ -98,6 +101,17 @@ public class Jdk implements Buildable, Iterable<File> {
             );
         }
         this.platform.set(platform);
+    }
+
+    public String getJvm() {
+        return jvm.get();
+    }
+
+    public void setJvm(final String jvm) {
+        if (ALLOWED_JVMS.contains(jvm) == false) {
+            throw new IllegalArgumentException("unknown jvm [" + jvm + "] for jdk [" + name + "], must be one of " + ALLOWED_JVMS);
+        }
+        this.jvm.set(jvm);
     }
 
     public String getArchitecture() {
@@ -181,12 +195,16 @@ public class Jdk implements Buildable, Iterable<File> {
         if (vendor.isPresent() == false) {
             throw new IllegalArgumentException("vendor not specified for jdk [" + name + "]");
         }
+        if (jvm.isPresent() == false) {
+            throw new IllegalArgumentException("jvm not specified for jdk [" + name + "]");
+        }
         if (architecture.isPresent() == false) {
             throw new IllegalArgumentException("architecture not specified for jdk [" + name + "]");
         }
         version.finalizeValue();
         platform.finalizeValue();
         vendor.finalizeValue();
+        jvm.finalizeValue();
         architecture.finalizeValue();
     }
 
@@ -210,7 +228,7 @@ public class Jdk implements Buildable, Iterable<File> {
 
         baseVersion = jdkVersionMatcher.group(1) + (jdkVersionMatcher.group(2) != null ? (jdkVersionMatcher.group(2)) : "");
         major = jdkVersionMatcher.group(1);
-        build = jdkVersionMatcher.group(3);
+        build = jdkVersionMatcher.group(3) + (jdkVersionMatcher.group(6) != null ? (jdkVersionMatcher.group(6)) : "") + (jdkVersionMatcher.group(7) != null ? (jdkVersionMatcher.group(7)) : "");
         hash = jdkVersionMatcher.group(5);
     }
 

@@ -72,8 +72,10 @@ import static org.elasticsearch.gradle.vagrant.VagrantMachine.convertWindowsPath
 public class DistroTestPlugin implements Plugin<Project> {
     private static final String SYSTEM_JDK_VERSION = "11.0.2+9";
     private static final String SYSTEM_JDK_VENDOR = "openjdk";
+    private static final String SYSTEM_JDK_JVM = "hotspot";
     private static final String GRADLE_JDK_VERSION = "14+36@076bab302c7b4508975440c56f6cc26a";
     private static final String GRADLE_JDK_VENDOR = "openjdk";
+    private static final String GRADLE_JDK_JVM = "hotspot";
 
     // all distributions used by distro tests. this is temporary until tests are per distribution
     private static final String DISTRIBUTIONS_CONFIGURATION = "distributions";
@@ -195,12 +197,14 @@ public class DistroTestPlugin implements Plugin<Project> {
         String vendor,
         String version,
         String platform,
+        String jvm,
         String architecture
     ) {
         Jdk jdk = jdksContainer.create(name);
         jdk.setVendor(vendor);
         jdk.setVersion(version);
         jdk.setPlatform(platform);
+        jdk.setJvm(jvm);
         jdk.setArchitecture(architecture);
         return jdk;
     }
@@ -233,8 +237,8 @@ public class DistroTestPlugin implements Plugin<Project> {
 
         NamedDomainObjectContainer<Jdk> jdksContainer = JdkDownloadPlugin.getContainer(project);
         String platform = box.contains("windows") ? "windows" : "linux";
-        Jdk systemJdk = createJdk(jdksContainer, "system", SYSTEM_JDK_VENDOR, SYSTEM_JDK_VERSION, platform, "x64");
-        Jdk gradleJdk = createJdk(jdksContainer, "gradle", GRADLE_JDK_VENDOR, GRADLE_JDK_VERSION, platform, "x64");
+        Jdk systemJdk = createJdk(jdksContainer, "system", SYSTEM_JDK_VENDOR, SYSTEM_JDK_VERSION, platform, SYSTEM_JDK_JVM, "x64");
+        Jdk gradleJdk = createJdk(jdksContainer, "gradle", GRADLE_JDK_VENDOR, GRADLE_JDK_VERSION, platform, GRADLE_JDK_JVM, "x64");
 
         // setup VM used by these tests
         VagrantExtension vagrant = project.getExtensions().getByType(VagrantExtension.class);

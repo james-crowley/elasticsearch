@@ -107,7 +107,7 @@ public class JdkDownloadPlugin implements Plugin<Project> {
              *
              * For Oracle/OpenJDK/AdoptOpenJDK we define a repository per-version.
              */
-            String repoName = REPO_NAME_PREFIX + jdk.getVendor() + "_" + jdk.getVersion();
+            String repoName = REPO_NAME_PREFIX + jdk.getVendor() + "_" + jdk.getVersion() + "_" + jdk.getJvm();
             String repoUrl;
             String artifactPattern;
             if (jdk.getVendor().equals("adoptopenjdk")) {
@@ -118,14 +118,18 @@ public class JdkDownloadPlugin implements Plugin<Project> {
                         + jdk.getBaseVersion()
                         + "-"
                         + jdk.getBuild()
-                        + "/[module]/[classifier]/jdk/hotspot/normal/adoptopenjdk";
+                        + "/[module]/[classifier]/jdk/"
+                        + jdk.getJvm()
+                        + "/normal/adoptopenjdk";
                 } else {
                     // current pattern since JDK 9
                     artifactPattern = "jdk-"
                         + jdk.getBaseVersion()
                         + "+"
                         + jdk.getBuild()
-                        + "/[module]/[classifier]/jdk/hotspot/normal/adoptopenjdk";
+                        + "/[module]/[classifier]/jdk/"
+                        + jdk.getJvm()
+                        + "/normal/adoptopenjdk";
                 }
             } else if (jdk.getVendor().equals("openjdk")) {
                 repoUrl = "https://download.oracle.com";

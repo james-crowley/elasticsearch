@@ -100,8 +100,9 @@ dependencies {
 jdks {
   legacy {
     vendor = 'adoptopenjdk'
-    version = '8u242+b08'
+    version = '11+28'
     platform = OS.current().name().toLowerCase()
+    jvm = "hotspot"
     architecture = Architecture.current().name().toLowerCase()
   }
 }
